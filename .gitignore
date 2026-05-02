@@ -9,9 +9,9 @@ Thumbs.db
 *.swo
 
 # Project specific
-models/
-results/
-bin/
+/models/
+/results/
+/bin/
 *.log
 
 # Build artifacts
@@ -21,6 +21,6 @@ out/
 
 # Dependencies
 node_modules/
-vendor/
+/vendor/
 
 
