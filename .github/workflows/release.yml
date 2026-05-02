@@ -43,7 +43,7 @@ jobs:
       matrix:
         include:
           - name: linux-amd64-cpu
-            runner: ubuntu-latest
+            runner: ubuntu-22.04
             os: linux
             arch: amd64
             backend: cpu
@@ -52,7 +52,7 @@ jobs:
             cxx_flags: -march=x86-64-v2 -O3 -flto
 
           - name: linux-amd64-vulkan
-            runner: ubuntu-latest
+            runner: ubuntu-22.04
             os: linux
             arch: amd64
             backend: vulkan
@@ -62,7 +62,7 @@ jobs:
             vulkan: true
 
           - name: linux-amd64-cuda
-            runner: ubuntu-latest
+            runner: ubuntu-22.04
             os: linux
             arch: amd64
             backend: cuda
@@ -157,7 +157,12 @@ jobs:
           curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring.deb
           sudo dpkg -i /tmp/cuda-keyring.deb
           sudo apt-get update -qq
-          sudo apt-get install -y -qq cuda-toolkit-12-4
+          sudo apt-get install -y -qq --no-install-recommends \
+            cuda-nvcc-12-4 \
+            cuda-cudart-dev-12-4 \
+            cuda-libraries-dev-12-4 \
+            libcublas-dev-12-4 \
+            cuda-command-line-tools-12-4
           echo "/usr/local/cuda-12.4/bin" >> "$GITHUB_PATH"
 
       - name: Setup CUDA (Windows)
