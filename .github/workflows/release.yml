@@ -240,6 +240,8 @@ jobs:
 
   release:
     name: Publish release
+    needs: build
+    if: success()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
