@@ -8,18 +8,18 @@ on:
     inputs:
       version:
         description: 'Release version (e.g., 0.0.1)'
-        required: false
+        required: true
         type: string
 
 permissions:
   contents: write
 
 env:
-  RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+  RELEASE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version) }}
 
 jobs:
   tag:
-    name: Create tag v${{ env.RELEASE_VERSION }}
+    name: Create tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,8 +31,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${{ env.RELEASE_VERSION }}"
-          git push origin "v${{ env.RELEASE_VERSION }}"
+          git tag "${{ env.RELEASE_VERSION }}"
+          git push origin "${{ env.RELEASE_VERSION }}"
 
   build:
     name: Build (${{ matrix.name }})
@@ -237,7 +237,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    name: Publish release v${{ env.RELEASE_VERSION }}
+    name: Publish release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -265,10 +265,10 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ env.RELEASE_VERSION }}
-          name: hive-cli v${{ env.RELEASE_VERSION }}
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: hive-cli ${{ env.RELEASE_VERSION }}
           body: |
-            ## hive-cli v${{ env.RELEASE_VERSION }}
+            ## hive-cli ${{ env.RELEASE_VERSION }}
 
             ### Assets
 
