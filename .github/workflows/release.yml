@@ -154,8 +154,11 @@ jobs:
         if: matrix.cuda && matrix.os == 'linux'
         shell: bash
         run: |
-          wget -q https://developer.download.nvidia.com/compute/cuda/12.4.0/network_installers/cuda_12.4.0_linux_network.run
-          sudo sh cuda_12.4.0_linux_network.run --silent --toolkit --toolkitpath=/usr/local/cuda-12.4
+          curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring.deb
+          sudo dpkg -i /tmp/cuda-keyring.deb
+          echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64 /" | sudo tee /etc/apt/sources.list.d/cuda.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cuda-toolkit-12-4
           echo "/usr/local/cuda-12.4/bin" >> "$GITHUB_PATH"
 
       - name: Setup CUDA (Windows)
@@ -169,8 +172,11 @@ jobs:
         if: matrix.vulkan && matrix.os == 'linux'
         shell: bash
         run: |
+          CODENAME=$(lsb_release -cs)
+          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc > /dev/null
+          echo "deb https://packages.lunarg.com/vulkan/1.3.290 $CODENAME main" | sudo tee /etc/apt/sources.list.d/lunarg-vulkan.list
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libvulkan-dev vulkan-tools glslang-tools
+          sudo apt-get install -y -qq vulkan-sdk
 
       - name: Setup Vulkan SDK (Windows)
         if: matrix.vulkan && matrix.os == 'windows'
