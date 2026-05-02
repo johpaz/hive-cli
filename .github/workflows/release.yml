@@ -156,7 +156,6 @@ jobs:
         run: |
           curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring.deb
           sudo dpkg -i /tmp/cuda-keyring.deb
-          echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64 /" | sudo tee /etc/apt/sources.list.d/cuda.list
           sudo apt-get update -qq
           sudo apt-get install -y -qq cuda-toolkit-12-4
           echo "/usr/local/cuda-12.4/bin" >> "$GITHUB_PATH"
@@ -166,7 +165,16 @@ jobs:
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri "https://developer.download.nvidia.com/compute/cuda/12.4.0/network_installers/cuda_12.4.0_windows_network.exe" -OutFile "$env:TEMP\cuda_install.exe"
-          Start-Process -Wait -FilePath "$env:TEMP\cuda_install.exe" -ArgumentList "-s nvcc,cudart"
+          Start-Process -Wait -FilePath "$env:TEMP\cuda_install.exe" -ArgumentList "-s", "nvcc_12.4", "cudart_12.4"
+          $cudaPath = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4"
+          if (Test-Path $cudaPath) {
+            echo "$cudaPath\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            echo "CUDA_PATH=$cudaPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "CUDAToolkit_ROOT=$cudaPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            Write-Error "CUDA installation path not found: $cudaPath"
+            exit 1
+          }
 
       - name: Setup Vulkan SDK (Linux)
         if: matrix.vulkan && matrix.os == 'linux'
