@@ -1,12 +1,45 @@
-# Hive CLI - Entrega Hackathon
+# Hive CLI
 
-Binario optimizado de `llama.cpp` (fork TurboQuant) con backend Vulkan, compilado para Linux x86_64 con optimizaciones nativas (`-march=znver3 -mtune=znver3 -O3 -flto`) para Ryzen 680M.
+CLI multimodal de `llama.cpp` (fork TurboQuant) con soporte cross-platform: Linux, macOS y Windows.
+
+## Instalación rápida
+
+### Linux / macOS
+```bash
+curl -sSL https://github.com/johpaz/hive-cli/releases/latest/download/install.sh | bash
+```
+Detecta automáticamente tu OS, arquitectura y backend óptimo (CUDA > Vulkan > Metal > CPU).
+
+### Windows (PowerShell)
+```powershell
+iwr -Uri https://github.com/johpaz/hive-cli/releases/latest/download/install.ps1 -OutFile install.ps1
+.\install.ps1
+```
+
+### Descarga manual
+Descarga el binario para tu plataforma desde [Releases](https://github.com/johpaz/hive-cli/releases).
+
+| Asset | Backend | Plataforma |
+|-------|---------|------------|
+| `hive-cli-linux-amd64-cpu` | CPU | Linux x86_64 |
+| `hive-cli-linux-amd64-vulkan` | Vulkan | Linux x86_64 |
+| `hive-cli-linux-amd64-cuda` | CUDA | Linux x86_64 (NVIDIA) |
+| `hive-cli-linux-arm64-cpu` | CPU | Linux ARM64 |
+| `hive-cli-darwin-amd64-cpu` | CPU | macOS Intel |
+| `hive-cli-darwin-amd64-metal` | Metal | macOS Intel |
+| `hive-cli-darwin-arm64-cpu` | CPU | macOS Apple Silicon |
+| `hive-cli-darwin-arm64-metal` | Metal | macOS Apple Silicon |
+| `hive-cli-windows-amd64-cpu.exe` | CPU | Windows x86_64 |
+| `hive-cli-windows-amd64-vulkan.exe` | Vulkan | Windows x86_64 |
+| `hive-cli-windows-amd64-cuda.exe` | CUDA | Windows x86_64 (NVIDIA) |
 
 ## Requisitos
 
-- Linux x86_64
-- Drivers Vulkan funcionales (mesa-vulkan-drivers, AMDVLK, etc.)
-- ~71 MB libres para el binario + espacio para modelos
+- **CPU/cpu**: cualquier sistema
+- **Vulkan**: drivers Vulkan funcionales
+- **CUDA**: GPU NVIDIA con drivers CUDA
+- **Metal**: macOS 10.14+ (Intel) o macOS 11+ (Apple Silicon)
+- ~71 MB libres para el binario + espacio para modelos (~4-8 GB por modelo)
 
 ## Estructura
 
@@ -113,12 +146,23 @@ Este modo interactivo permite combinar las 3 modalidades simultáneamente:
 
 ## Compilación
 
-El binario fue compilado desde el fork `TheTom/llama-cpp-turboquant` con:
-- Backend Vulkan activado
-- `-march=znver3 -mtune=znver3 -O3 -flto`
-- Sin CUDA, Metal, OpenCL, SYCL, HIP
-- Sin tests, ejemplos, servidor, webui
-- `OUTPUT_NAME=hive-cli` en el target principal
+Los releases se generan automáticamente via GitHub Actions. Ejecutar manualmente desde el repo:
+
+```bash
+cd llama-cpp-turboquant
+
+# CPU only
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF
+cmake --build build --config Release -j$(nproc)
+
+# Con backend específico
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON # o CUDA/Metal
+cmake --build build --config Release -j$(nproc)
+```
+
+El binario se genera como `build/bin/hive-cli`.
+
+Para crear un release con todas las plataformas, ve a **Actions → Release** y ejecuta el workflow con el número de versión deseado.
 
 ## Licencia
 

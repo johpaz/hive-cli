@@ -1,0 +1,283 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 0.0.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Create tag v${{ inputs.version }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ inputs.version }}"
+          git push origin "v${{ inputs.version }}"
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: tag
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-amd64-cpu
+            runner: ubuntu-latest
+            os: linux
+            arch: amd64
+            backend: cpu
+            cmake_flags: -DGGML_NATIVE=OFF
+            c_flags: -march=x86-64-v2 -O3 -flto
+            cxx_flags: -march=x86-64-v2 -O3 -flto
+
+          - name: linux-amd64-vulkan
+            runner: ubuntu-latest
+            os: linux
+            arch: amd64
+            backend: vulkan
+            cmake_flags: -DGGML_VULKAN=ON -DGGML_NATIVE=OFF
+            c_flags: -march=x86-64-v2 -O3 -flto
+            cxx_flags: -march=x86-64-v2 -O3 -flto
+            vulkan: true
+
+          - name: linux-amd64-cuda
+            runner: ubuntu-latest
+            os: linux
+            arch: amd64
+            backend: cuda
+            cmake_flags: -DGGML_CUDA=ON -DGGML_NATIVE=OFF -DCMAKE_CUDA_ARCHITECTURES=52\;61\;70\;75\;80\;86\;89\;90
+            c_flags: -march=x86-64-v2 -O3 -flto
+            cxx_flags: -march=x86-64-v2 -O3 -flto
+            cuda: true
+
+          - name: linux-arm64-cpu
+            runner: ubuntu-24.04-arm
+            os: linux
+            arch: arm64
+            backend: cpu
+            cmake_flags: -DGGML_NATIVE=OFF
+            c_flags: -O3 -flto
+            cxx_flags: -O3 -flto
+
+          - name: darwin-amd64-cpu
+            runner: macos-13
+            os: darwin
+            arch: amd64
+            backend: cpu
+            cmake_flags: -DGGML_NATIVE=OFF
+            c_flags: -O3 -flto
+            cxx_flags: -O3 -flto
+
+          - name: darwin-amd64-metal
+            runner: macos-13
+            os: darwin
+            arch: amd64
+            backend: metal
+            cmake_flags: -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON -DGGML_NATIVE=OFF
+            c_flags: -O3 -flto
+            cxx_flags: -O3 -flto
+
+          - name: darwin-arm64-cpu
+            runner: macos-latest
+            os: darwin
+            arch: arm64
+            backend: cpu
+            cmake_flags: -DGGML_NATIVE=OFF
+            c_flags: -O3 -flto
+            cxx_flags: -O3 -flto
+
+          - name: darwin-arm64-metal
+            runner: macos-latest
+            os: darwin
+            arch: arm64
+            backend: metal
+            cmake_flags: -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON -DGGML_NATIVE=OFF
+            c_flags: -O3 -flto
+            cxx_flags: -O3 -flto
+
+          - name: windows-amd64-cpu
+            runner: windows-latest
+            os: windows
+            arch: amd64
+            backend: cpu
+            cmake_flags: -DGGML_NATIVE=OFF
+            c_flags: /O2
+            cxx_flags: /O2
+
+          - name: windows-amd64-vulkan
+            runner: windows-latest
+            os: windows
+            arch: amd64
+            backend: vulkan
+            cmake_flags: -DGGML_VULKAN=ON -DGGML_NATIVE=OFF
+            c_flags: /O2
+            cxx_flags: /O2
+            vulkan: true
+
+          - name: windows-amd64-cuda
+            runner: windows-latest
+            os: windows
+            arch: amd64
+            backend: cuda
+            cmake_flags: -DGGML_CUDA=ON -DGGML_NATIVE=OFF -DCMAKE_CUDA_ARCHITECTURES=52\;61\;70\;75\;80\;86\;89\;90
+            c_flags: /O2
+            cxx_flags: /O2
+            cuda: true
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup CUDA
+        if: matrix.cuda
+        uses: Jimver/cuda-toolkit@v0.2.21
+        with:
+          cuda: '12.4'
+          method: 'network'
+          sub-packages: 'nvcc,cudart'
+
+      - name: Setup Vulkan SDK
+        if: matrix.vulkan
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: 1.3.280.0
+          vulkan-components: Vulkan-Headers, Vulkan-Loader, glslc
+          vulkan-use-cache: true
+
+      - name: Configure CMake
+        shell: bash
+        working-directory: llama-cpp-turboquant
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLAMA_TOOLS_INSTALL=OFF \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DLLAMA_BUILD_TESTS=OFF \
+            -DLLAMA_BUILD_EXAMPLES=OFF \
+            -DLLAMA_BUILD_SERVER=OFF \
+            -DCMAKE_C_FLAGS="${{ matrix.c_flags }}" \
+            -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}" \
+            ${{ matrix.cmake_flags }}
+
+      - name: Build
+        shell: bash
+        working-directory: llama-cpp-turboquant
+        run: |
+          JOBS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
+          cmake --build build --config Release -j "$JOBS"
+
+      - name: Prepare asset
+        shell: bash
+        run: |
+          ASSET="hive-cli-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.backend }}"
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            ASSET="${ASSET}.exe"
+            SRC="llama-cpp-turboquant/build/bin/Release/hive-cli.exe"
+            if [ ! -f "$SRC" ]; then
+              SRC="llama-cpp-turboquant/build/bin/hive-cli.exe"
+            fi
+          else
+            SRC="llama-cpp-turboquant/build/bin/hive-cli"
+          fi
+
+          if [ ! -f "$SRC" ]; then
+            echo "Error: binary not found at $SRC"
+            find llama-cpp-turboquant/build -name "hive-cli*" -type f 2>/dev/null || true
+            exit 1
+          fi
+
+          cp "$SRC" "$ASSET"
+          echo "ASSET_NAME=$ASSET" >> "$GITHUB_ENV"
+          echo "Prepared asset: $ASSET"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ env.ASSET_NAME }}
+          if-no-files-found: error
+
+  release:
+    name: Publish release v${{ inputs.version }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Gather release assets
+        shell: bash
+        run: |
+          mkdir -p assets
+          find artifacts -type f -exec cp -v {} assets/ \;
+          cp -v install.sh install.ps1 assets/
+          ls -la assets/
+
+      - name: Compute SHA256 checksums
+        shell: bash
+        run: |
+          cd assets
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: hive-cli v${{ inputs.version }}
+          body: |
+            ## hive-cli v${{ inputs.version }}
+
+            ### Assets
+
+            | Asset | Descripción |
+            |-------|-------------|
+            | `hive-cli-linux-amd64-cpu` | Linux x86_64 — CPU |
+            | `hive-cli-linux-amd64-vulkan` | Linux x86_64 — Vulkan |
+            | `hive-cli-linux-amd64-cuda` | Linux x86_64 — CUDA (NVIDIA) |
+            | `hive-cli-linux-arm64-cpu` | Linux ARM64 — CPU |
+            | `hive-cli-darwin-amd64-cpu` | macOS Intel — CPU |
+            | `hive-cli-darwin-amd64-metal` | macOS Intel — Metal |
+            | `hive-cli-darwin-arm64-cpu` | macOS Apple Silicon — CPU |
+            | `hive-cli-darwin-arm64-metal` | macOS Apple Silicon — Metal |
+            | `hive-cli-windows-amd64-cpu.exe` | Windows x86_64 — CPU |
+            | `hive-cli-windows-amd64-vulkan.exe` | Windows x86_64 — Vulkan |
+            | `hive-cli-windows-amd64-cuda.exe` | Windows x86_64 — CUDA (NVIDIA) |
+            | `install.sh` | Script de instalación (Linux/macOS) |
+            | `install.ps1` | Script de instalación (Windows) |
+            | `checksums.txt` | Checksums SHA-256 |
+
+            ### Instalación rápida
+
+            **Linux/macOS:**
+            ```bash
+            curl -sSL https://github.com/johpaz/hive-cli/releases/latest/download/install.sh | bash
+            ```
+
+            **Windows:**
+            ```powershell
+            iwr -Uri https://github.com/johpaz/hive-cli/releases/latest/download/install.ps1 -OutFile install.ps1
+            .\install.ps1
+            ```
+
+            > Los scripts detectan automáticamente tu plataforma y backend óptimo.
+          files: assets/*
