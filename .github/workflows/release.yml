@@ -122,8 +122,8 @@ jobs:
             arch: amd64
             backend: cpu
             cmake_flags: -DGGML_NATIVE=OFF
-            c_flags: /O2
-            cxx_flags: /O2
+            c_flags: ""
+            cxx_flags: ""
 
           - name: windows-amd64-vulkan
             runner: windows-latest
@@ -131,8 +131,8 @@ jobs:
             arch: amd64
             backend: vulkan
             cmake_flags: -DGGML_VULKAN=ON -DGGML_NATIVE=OFF
-            c_flags: /O2
-            cxx_flags: /O2
+            c_flags: ""
+            cxx_flags: ""
             vulkan: true
 
           - name: windows-amd64-cuda
@@ -141,8 +141,8 @@ jobs:
             arch: amd64
             backend: cuda
             cmake_flags: -DGGML_CUDA=ON -DGGML_NATIVE=OFF -DCMAKE_CUDA_ARCHITECTURES=52\;61\;70\;75\;80\;86\;89\;90
-            c_flags: /O2
-            cxx_flags: /O2
+            c_flags: ""
+            cxx_flags: ""
             cuda: true
 
     steps:
@@ -154,12 +154,8 @@ jobs:
         if: matrix.cuda && matrix.os == 'linux'
         shell: bash
         run: |
-          UBUNTU_VER=$(lsb_release -rs | tr -d '.')
-          curl -fsSL "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VER}/x86_64/cuda-keyring_1.1-1_all.deb" \
-            -o /tmp/cuda-keyring.deb
-          sudo dpkg -i /tmp/cuda-keyring.deb
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq cuda-toolkit-12-4
+          wget -q https://developer.download.nvidia.com/compute/cuda/12.4.0/network_installers/cuda_12.4.0_linux_network.run
+          sudo sh cuda_12.4.0_linux_network.run --silent --toolkit --toolkitpath=/usr/local/cuda-12.4
           echo "/usr/local/cuda-12.4/bin" >> "$GITHUB_PATH"
 
       - name: Setup CUDA (Windows)
@@ -174,7 +170,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libvulkan-dev vulkan-tools shaderc
+          sudo apt-get install -y -qq libvulkan-dev vulkan-tools glslang-tools
 
       - name: Setup Vulkan SDK (Windows)
         if: matrix.vulkan && matrix.os == 'windows'
