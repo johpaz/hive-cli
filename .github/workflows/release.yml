@@ -175,7 +175,15 @@ jobs:
           Write-Host "CUDA installer exited with code: $($proc.ExitCode)"
           if (Test-Path $logFile) {
             Write-Host "--- CUDA installer log ---"
-            Get-Content $logFile | ForEach-Object { Write-Host $_ }
+            $logItem = Get-Item $logFile
+            if ($logItem.PSIsContainer) {
+              Get-ChildItem $logFile -File -Recurse | ForEach-Object {
+                Write-Host "Log file: $($_.FullName)"
+                Get-Content $_.FullName | ForEach-Object { Write-Host $_ }
+              }
+            } else {
+              Get-Content $logFile | ForEach-Object { Write-Host $_ }
+            }
             Write-Host "--- End of log ---"
           }
           $cudaPath = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4"
