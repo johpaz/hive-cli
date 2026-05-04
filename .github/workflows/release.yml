@@ -108,15 +108,6 @@ jobs:
             c_flags: ""
             cxx_flags: ""
 
-          - name: windows-amd64-cuda
-            runner: windows-latest
-            os: windows
-            arch: amd64
-            backend: cuda
-            cmake_flags: -DGGML_CUDA=ON -DGGML_NATIVE=OFF -DCMAKE_CUDA_ARCHITECTURES=52\;61\;70\;75\;80\;86\;89\;90
-            c_flags: ""
-            cxx_flags: ""
-            cuda: true
 
     steps:
       - uses: actions/checkout@v4
@@ -138,15 +129,6 @@ jobs:
             libcublas-dev-12-4 \
             cuda-command-line-tools-12-4
           echo "/usr/local/cuda-12.4/bin" >> "$GITHUB_PATH"
-
-      - name: Setup CUDA (Windows)
-        if: matrix.cuda && matrix.os == 'windows'
-        uses: Jimver/cuda-toolkit@v0.2.21
-        with:
-          cuda: '12.4.1'
-          method: 'network'
-          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "visual_studio_integration"]'
-
 
       - name: Setup Vulkan SDK (Linux)
         if: matrix.vulkan && matrix.os == 'linux'
