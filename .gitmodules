@@ -1,0 +1,3 @@
+[submodule "llama-cpp-turboquant/third_party/SPIRV-Headers"]
+	path = llama-cpp-turboquant/third_party/SPIRV-Headers
+	url = https://github.com/KhronosGroup/SPIRV-Headers.git
