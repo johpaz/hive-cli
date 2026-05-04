@@ -49,8 +49,8 @@ jobs:
             arch: amd64
             backend: cpu
             cmake_flags: -DGGML_NATIVE=OFF
-            c_flags: -march=x86-64-v2 -O3 -flto=thin
-            cxx_flags: -march=x86-64-v2 -O3 -flto=thin
+            c_flags: -march=x86-64-v2 -O3
+            cxx_flags: -march=x86-64-v2 -O3
 
           - name: linux-amd64-vulkan
             runner: ubuntu-22.04
@@ -58,8 +58,8 @@ jobs:
             arch: amd64
             backend: vulkan
             cmake_flags: -DGGML_VULKAN=ON -DGGML_NATIVE=OFF
-            c_flags: -march=x86-64-v2 -O3 -flto=thin
-            cxx_flags: -march=x86-64-v2 -O3 -flto=thin
+            c_flags: -march=x86-64-v2 -O3
+            cxx_flags: -march=x86-64-v2 -O3
             vulkan: true
 
           - name: linux-amd64-cuda
@@ -68,8 +68,8 @@ jobs:
             arch: amd64
             backend: cuda
             cmake_flags: -DGGML_CUDA=ON -DGGML_NATIVE=OFF -DCMAKE_CUDA_ARCHITECTURES=52\;61\;70\;75\;80\;86\;89\;90
-            c_flags: -march=x86-64-v2 -O3 -flto=thin
-            cxx_flags: -march=x86-64-v2 -O3 -flto=thin
+            c_flags: -march=x86-64-v2 -O3
+            cxx_flags: -march=x86-64-v2 -O3
             cuda: true
 
           - name: linux-arm64-cpu
@@ -78,8 +78,8 @@ jobs:
             arch: arm64
             backend: cpu
             cmake_flags: -DGGML_NATIVE=OFF
-            c_flags: -O3 -flto=thin
-            cxx_flags: -O3 -flto=thin
+            c_flags: -O3
+            cxx_flags: -O3
 
           - name: darwin-arm64-cpu
             runner: macos-latest
