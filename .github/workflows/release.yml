@@ -113,7 +113,7 @@ jobs:
             os: windows
             arch: amd64
             backend: cuda
-            cmake_flags: -DGGML_CUDA=ON -DGGML_NATIVE=OFF -DCMAKE_CUDA_ARCHITECTURES=52\;61\;70\;75\;80\;86\;89\;90 -DCMAKE_CUDA_COMPILER="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/bin/nvcc.exe"
+            cmake_flags: -DGGML_CUDA=ON -DGGML_NATIVE=OFF -DCMAKE_CUDA_ARCHITECTURES=52\;61\;70\;75\;80\;86\;89\;90
             c_flags: ""
             cxx_flags: ""
             cuda: true
@@ -141,64 +141,12 @@ jobs:
 
       - name: Setup CUDA (Windows)
         if: matrix.cuda && matrix.os == 'windows'
-        shell: pwsh
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          $logFile = "$env:TEMP\cuda_install.log"
-          curl.exe -L --retry 5 "https://developer.download.nvidia.com/compute/cuda/12.4.0/network_installers/cuda_12.4.0_windows_network.exe" -o "$env:TEMP\cuda_install.exe"
-          $proc = Start-Process -FilePath "$env:TEMP\cuda_install.exe" -ArgumentList "-s", "-n", "-loglevel:6", "-log:`"$logFile`"", "nvcc_12.4", "cudart_12.4", "cublas_12.4", "cublas_dev_12.4", "visual_studio_integration_12.4" -Wait -PassThru
-          Write-Host "CUDA installer exited with code: $($proc.ExitCode)"
-          if (Test-Path $logFile) {
-            Write-Host "--- CUDA installer log ---"
-            $logItem = Get-Item $logFile
-            if ($logItem.PSIsContainer) {
-              Get-ChildItem $logFile -File -Recurse | ForEach-Object {
-                Write-Host "Log file: $($_.FullName)"
-                Get-Content $_.FullName | ForEach-Object { Write-Host $_ }
-              }
-            } else {
-              Get-Content $logFile | ForEach-Object { Write-Host $_ }
-            }
-            Write-Host "--- End of log ---"
-          }
-          $cudaPath = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4"
-          $vsBase = "C:\Program Files\Microsoft Visual Studio\2022"
-          $vsPath = $null
-          foreach ($edition in @("Enterprise", "Professional", "Community", "BuildTools")) {
-            $candidate = Join-Path $vsBase "$edition\MSBuild\Microsoft\VC\v170\BuildCustomizations"
-            if (Test-Path $candidate) {
-              $vsPath = $candidate
-              break
-            }
-          }
-          if (Test-Path $cudaPath) {
-            if ($vsPath -and !(Test-Path $vsPath)) { New-Item -ItemType Directory -Path $vsPath -Force }
-            if ($vsPath) {
-              Copy-Item "$cudaPath\extras\visual_studio_integration\MSBuildExtensions\*" "$vsPath" -Force
-            }
-            echo "$cudaPath\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            echo "CUDA_PATH=$cudaPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            echo "CUDA_PATH_V12_4=$cudaPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            echo "CudaToolkitDir=$cudaPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            echo "CUDAToolkit_ROOT=$cudaPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          } else {
-            Write-Error "CUDA installation path not found: $cudaPath"
-            exit 1
-          }
+        uses: Jimver/cuda-toolkit@v0.2.21
+        with:
+          cuda: '12.4.1'
+          method: 'network'
+          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "visual_studio_integration"]'
 
-      - name: Verify CUDA installation (Windows)
-        if: matrix.cuda && matrix.os == 'windows'
-        shell: pwsh
-        run: |
-          $cudaPath = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4"
-          Write-Host "CUDA bin contents:"
-          Get-ChildItem "$cudaPath\bin" -Filter "*.exe" | Select-Object -First 10
-          Write-Host "CUDA lib/x64 contents (cuBLAS check):"
-          Get-ChildItem "$cudaPath\lib\x64" -Filter "cublas*" | Select-Object Name
-          if (!(Test-Path "$cudaPath\lib\x64\cublas.lib")) {
-            Write-Error "cuBLAS library not found!"
-            exit 1
-          }
 
       - name: Setup Vulkan SDK (Linux)
         if: matrix.vulkan && matrix.os == 'linux'
