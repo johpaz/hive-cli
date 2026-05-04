@@ -248,7 +248,6 @@ jobs:
             | `hive-cli-darwin-arm64-cpu` | macOS Apple Silicon — CPU |
             | `hive-cli-darwin-arm64-metal` | macOS Apple Silicon — Metal |
             | `hive-cli-windows-amd64-cpu.exe` | Windows x86_64 — CPU |
-            | `hive-cli-windows-amd64-cuda.exe` | Windows x86_64 — CUDA (NVIDIA) |
             | `install.sh` | Script de instalación (Linux/macOS) |
             | `install.ps1` | Script de instalación (Windows) |
             | `checksums.txt` | Checksums SHA-256 |
